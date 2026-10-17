@@ -138,9 +138,11 @@ def sse_from_torsion(phi_deg, psi_deg):
     return ss
 
 
-def shrake_rupley(pdb_path, resids, probe=1.4, n_pts=92):
-    """Per-residue absolute SASA (A^2), Shrake-Rupley, numpy."""
-    atoms = parse_atoms(pdb_path)
+def shrake_rupley(pdb_path, resids, probe=1.4, n_pts=92, atoms=None):
+    """Per-residue absolute SASA (A^2), Shrake-Rupley, numpy. The test-point sphere is fixed in
+    the coordinate frame, so the result depends on orientation unless the caller passes atoms
+    already in the canonical frame (see canonical_frame)."""
+    atoms = parse_atoms(pdb_path) if atoms is None else atoms
     xyz = np.array([a['xyz'] for a in atoms])
     rad = np.array([VDW.get(a['elem'], 1.70) for a in atoms]) + probe
     ri = np.array([a['resi'] for a in atoms])
@@ -161,26 +163,29 @@ def shrake_rupley(pdb_path, resids, probe=1.4, n_pts=92):
     return {int(i): float(sasa[ri == i].sum()) for i in resids}
 
 
-def _sse_sasa_torsion(df, pdb_path, resids):
+def _sse_sasa_torsion(df, pdb_path, resids, atoms=None):
     phi = np.degrees(np.arctan2(df['phi_sin'].values, df['phi_cos'].values))
     psi = np.degrees(np.arctan2(df['psi_sin'].values, df['psi_cos'].values))
     ss = sse_from_torsion(phi, psi)
     df['ss_H'] = (ss == 'H').astype(float)
     df['ss_E'] = (ss == 'E').astype(float)
     df['ss_C'] = (ss == 'C').astype(float)
-    sa = shrake_rupley(pdb_path, resids)
+    sa = shrake_rupley(pdb_path, resids, atoms=atoms)
     df['rsasa'] = [sa.get(int(r), np.nan) / TIEN_MAXASA.get(a, 200)
                    for r, a in zip(df['resi'], df['aa1'])]
     return df
 
 
-def _sse_sasa_psea(df, pdb_path):
+def _sse_sasa_psea(df, pdb_path, transform=None):
     try:
         import biotite.structure.io.pdb as pdbio
         import biotite.structure as struc
     except ImportError as e:
         raise FeaturizeError("sse_method='psea' needs biotite (pip install biotite)") from e
     arr = pdbio.PDBFile.read(pdb_path).get_structure(model=1)
+    if transform is not None:                     # same rigid motion as the numpy features
+        R, c = transform
+        arr.coord = ((arr.coord.astype(np.float64) - c) @ R.T).astype(arr.coord.dtype)
     sse = struc.annotate_sse(arr)
     sasa_rw = struc.apply_residue_wise(arr, struc.sasa(arr), np.nansum)
     rids = np.unique(arr.res_id)
@@ -213,14 +218,68 @@ def _add_sse_position(df):
     return df
 
 
+# ------------------------------------------------------------------- canonical frame
+FRAMES = ('canonical', 'input')
+BREAK_POLICIES = ('mask', 'legacy')
+MAX_PEPTIDE_CN = 2.0     # A; a real C(i-1)-N(i) peptide bond is ~1.33 A
+
+
+def canonical_frame(atoms):
+    """Rigid motion (R, c) taking the structure into a deterministic frame: origin at the CA
+    centroid, axes along the principal axes of the CA coordinates (largest variance first),
+    each of the first two axis signs fixed by the sign of the third moment of the projected
+    CA coordinates, third axis = e1 x e2 (a proper rotation, so dihedral signs are preserved).
+    Applying x' = R (x - c) makes every feature exactly invariant to rotating or translating
+    the input, up to floating-point error."""
+    ca = np.array([a['xyz'] for a in atoms if a['name'] == 'CA'], float)
+    if len(ca) < 3:
+        raise FeaturizeError('need at least 3 CA atoms to define a frame')
+    c = ca.mean(0); X = ca - c
+    w, V = np.linalg.eigh(X.T @ X / len(X))
+    order = np.argsort(w)[::-1]; w, V = w[order], V[:, order]
+    if w[2] > 0 and (w[0] - w[1] < 0.01 * w[0] or w[1] - w[2] < 0.01 * w[1]):
+        import warnings
+        warnings.warn('principal axes are nearly degenerate; the canonical frame (and hence the '
+                      'Shrake-Rupley SASA) may be sensitive to small coordinate changes')
+    e = []
+    for k in range(2):
+        v = V[:, k]; m3 = np.sum((X @ v) ** 3)
+        e.append(v if m3 >= 0 else -v)
+    e.append(np.cross(e[0], e[1]))
+    return np.array(e), c
+
+
+def _apply_frame(atoms, R, c):
+    return [dict(a, xyz=R @ (a['xyz'] - c)) for a in atoms]
+
+
 # --------------------------------------------------------------------- node features
-def node_features(pdb_path, sse_method='torsion', r_c=6.5, r_h=2.4, contact_cb=8.0):
-    """Per-residue feature table (one row per residue) from a sanitized single-chain PDB."""
+def node_features(pdb_path, sse_method='torsion', r_c=6.5, r_h=2.4, contact_cb=8.0,
+                  frame='canonical', break_policy='mask'):
+    """Per-residue feature table (one row per residue) from a sanitized single-chain PDB.
+
+    frame='canonical' (default) computes every feature in canonical_frame, so outputs do not
+    depend on how the input is oriented. frame='input' and break_policy='legacy' reproduce
+    v0.1.x exactly (used to check published numbers; not for new predictions).
+
+    A residue is `after_chain_break` when it is not the first residue and the previous residue
+    is absent, has no C atom, or sits more than 2.0 A from this N (a real gap with consecutive
+    numbering). Under break_policy='mask' its amide-H features (hb_amide_count, hb_is_donor) and
+    phi are set to missing, which standardization maps to the training mean / 0, instead of
+    being computed from an amide H placed without a preceding carbonyl; psi of the residue before
+    a geometric break is masked the same way.
+    """
     if sse_method not in SSE_METHODS:
         raise ValueError(f'sse_method must be one of {SSE_METHODS}')
+    if frame not in FRAMES or break_policy not in BREAK_POLICIES:
+        raise ValueError(f'frame in {FRAMES}, break_policy in {BREAK_POLICIES}')
     atoms = parse_atoms(pdb_path)
     if not atoms:
         raise FeaturizeError(f'no standard-residue heavy atoms in {pdb_path}')
+    transform = None
+    if frame == 'canonical':
+        transform = canonical_frame(atoms)
+        atoms = _apply_frame(atoms, *transform)
     res = by_residue(atoms)
     resids = sorted(res)
     first_two = set(resids[:2])
@@ -232,6 +291,12 @@ def node_features(pdb_path, sse_method='torsion', r_c=6.5, r_h=2.4, contact_cb=8
         ri = res[i]; resn = ri['resn']; aa = THREE2ONE.get(resn, 'X')
         at = ri['atoms']; N, CA, C = at.get('N'), at.get('CA'), at.get('C')
         is_pro = (resn == 'PRO')
+        C_before = res.get(i - 1, {}).get('atoms', {}).get('C')
+        after_break = k > 0 and (C_before is None or
+                                 (N is not None and np.linalg.norm(N - C_before) > MAX_PEPTIDE_CN))
+        N_next = res.get(i + 1, {}).get('atoms', {}).get('N')
+        before_break = C is not None and N_next is not None and \
+            np.linalg.norm(N_next - C) > MAX_PEPTIDE_CN
         N_c = N_h = np.nan
         if N is not None and not is_pro:
             far = np.abs(ari - i) > 2
@@ -254,10 +319,17 @@ def node_features(pdb_path, sse_method='torsion', r_c=6.5, r_h=2.4, contact_cb=8
             phi = _dihedral(Cm, N, CA, C)
         if all(a is not None for a in (N, CA, C, Np)):
             psi = _dihedral(N, CA, C, Np)
+        hb_donor = float((N_h or 0) > 0)
+        if break_policy == 'mask':
+            if after_break:
+                N_h = hb_donor = np.nan
+                phi = np.nan
+            if before_break:
+                psi = np.nan
         rows.append(dict(
             resi=i, resn=resn, aa1=aa,
             seq_relpos=k / max(len(resids) - 1, 1),
-            hb_amide_count=N_h, hb_is_donor=float((N_h or 0) > 0),
+            hb_amide_count=N_h, hb_is_donor=hb_donor,
             contacts_amideN=N_c, contacts_cb=cnum,
             kd_hydropathy=KD.get(aa, 0.0), sc_volume=VOL.get(aa, 0.0),
             charge7=CHARGE7.get(aa, 0.0),
@@ -268,14 +340,15 @@ def node_features(pdb_path, sse_method='torsion', r_c=6.5, r_h=2.4, contact_cb=8
             plddt=np.nan,          # dead feature: its training mean/sd are NaN -> always 0
             is_proline=float(is_pro),
             is_measurable=float((not is_pro) and (i not in first_two)),
+            after_chain_break=bool(after_break),
         ))
     df = pd.DataFrame(rows)
     for a in AA_ORDER:
         df[f'aa_{a}'] = (df['aa1'] == a).astype(float)
     df['ss_H'] = df['ss_E'] = df['ss_C'] = 0.0
     df['rsasa'] = np.nan
-    df = _sse_sasa_torsion(df, pdb_path, resids) if sse_method == 'torsion' \
-        else _sse_sasa_psea(df, pdb_path)
+    df = _sse_sasa_torsion(df, pdb_path, resids, atoms=atoms) if sse_method == 'torsion' \
+        else _sse_sasa_psea(df, pdb_path, transform=transform)
     return _add_sse_position(df)
 
 
@@ -320,10 +393,11 @@ def pair_features(ca, pair_idx=None):
     return out
 
 
-def build_inputs(pdb_path, sse_method='torsion'):
-    """Sanitized PDB -> dict(X, ca, exchangeable, resi, aa1, sequence, features)."""
+def build_inputs(pdb_path, sse_method='torsion', frame='canonical', break_policy='mask'):
+    """Sanitized PDB -> dict(X, ca, exchangeable, after_chain_break, resi, aa1, sequence, features).
+    frame / break_policy: see node_features; the non-default values exist only to reproduce v0.1.x."""
     feat_cols, mu, sd, _ = load_feature_norm()
-    df = node_features(pdb_path, sse_method=sse_method)
+    df = node_features(pdb_path, sse_method=sse_method, frame=frame, break_policy=break_policy)
     X = standardize(df, feat_cols, mu, sd)
     cam = parse_ca(pdb_path)
     missing = [r for r in df['resi'] if r not in cam]
@@ -331,5 +405,6 @@ def build_inputs(pdb_path, sse_method='torsion'):
         raise FeaturizeError(f'missing CA for residues {missing[:8]}')
     ca = np.array([cam[r] for r in df['resi']], float).astype(np.float32)
     exch = (df['is_proline'].to_numpy(float) < 0.5) & (df['is_measurable'].to_numpy(float) > 0.5)
-    return dict(X=X, ca=ca, exchangeable=exch, resi=df['resi'].to_numpy(int),
+    return dict(X=X, ca=ca, exchangeable=exch, after_chain_break=df['after_chain_break'].to_numpy(bool),
+                resi=df['resi'].to_numpy(int),
                 aa1=df['aa1'].tolist(), sequence=''.join(df['aa1']), features=df)

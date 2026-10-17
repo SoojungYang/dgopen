@@ -1,4 +1,4 @@
-# Model card: dgopen model-ens v0.1.0
+# Model card: dgopen model-ens (dgopen v0.2.0; weights v0.1.0)
 
 ## Summary
 
@@ -54,21 +54,25 @@ proteins comparable in size to the training set (28–64 residues).
 Spearman ρ between predicted and measured ΔG_open over measured residues, averaged over
 proteins (macro).
 
-| benchmark | model-ens (release default) | model-ens (published, `--sse-method psea`) | Best-Vendruscolo |
+| benchmark | model-ens (v0.2.0 default) | model-ens (published evaluation) | Best-Vendruscolo |
 |---|---|---|---|
-| WT-external, 12 folds (held out) | 0.393 | 0.402 | 0.35 |
-| HDX-NMR, 13 domains | 0.630 | 0.631 | 0.39 |
+| WT-external, 12 folds (held out) | 0.400 | 0.402 | 0.35 |
+| HDX-NMR, 13 domains | 0.631 | 0.631 | 0.39 |
 
 - **WT-external** proteins are not in the training set. Per-fold ρ ranges from about 0.0 to
   0.7, so on any single protein the result can be poor.
 - **HDX-NMR:** 10 of the 13 domains are in the fine-tuning set. Their MS distributions, not
   their NMR per-residue labels, were seen in training. Treat this row as partly in-sample.
-- The release default differs from the published evaluation in two inference-time details:
-  (1) torsion-rule SSE and numpy SASA, which match training, in place of P-SEA and biotite
-  SASA, which do not; (2) keeping only the first alternate location of each atom, where the
-  published evaluation counted every conformer in contact and H-bond counts. The net change
-  is −0.009 macro ρ on WT-external. The median per-residue change is 0.07 kcal/mol and the
-  largest is 0.75 kcal/mol.
+- The v0.2.0 default differs from the published evaluation in four inference-time details:
+  1. torsion-rule SSE and numpy SASA, which match training, replace P-SEA and biotite SASA;
+  2. only the first alternate location of each atom is kept (the published evaluation counted
+     every conformer in its contact and H-bond counts);
+  3. features are computed in a canonical principal-axes frame, so predictions no longer
+     depend on the input orientation (v0.1 outputs varied under rotation by a median of
+     0.02 kcal/mol, at most 0.38);
+  4. residues after a chain break get mean-valued amide H-bond features and are flagged.
+
+  Together these change WT-external macro ρ by −0.002. See CHANGELOG.md.
 
 ## Limitations: read before use
 

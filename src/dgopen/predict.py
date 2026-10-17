@@ -42,11 +42,12 @@ def predict_structure(pdb_path, chain=None, sse_method='torsion', weights_dir=No
     mean, sd, per = ens.predict(inp['X'], inp['ca'], np.asarray(embedding, np.float32))
     ex = inp['exchangeable']
     df = pd.DataFrame(dict(resi=inp['resi'], resn=inp['features']['resn'], aa1=inp['aa1'],
-                           exchangeable=ex,
+                           exchangeable=ex, after_chain_break=inp['after_chain_break'],
                            dg_open_kcal=np.where(ex, mean, np.nan),
                            dg_open_member_sd=np.where(ex, sd, np.nan)))
     if return_members:
         for k, v in per.items():
             df[k] = v
-    df.attrs.update(input=report, sse_method=sse_method, n_members=len(per))
+    df.attrs.update(input=report, sse_method=sse_method, n_members=len(per),
+                    chain_breaks_before=[int(r) for r in inp['resi'][inp['after_chain_break']]])
     return df

@@ -53,8 +53,10 @@ A CPU is enough. 5PTI (58 residues) takes about 30 s, almost all of it loading a
   atom keeps its first alternate location only. MODEL 1 is used from multi-model files.
 - dgopen **refuses** (with a message saying why) on insertion codes, non-standard residues
   inside the chain (e.g. MSE), residues without a CA atom, or several chains when no
-  `--chain` is given. It never renumbers residues, because chain breaks must stay as gaps in
-  the numbering.
+  `--chain` is given. It never renumbers residues. Chain breaks are detected from the
+  geometry (C(i−1)–N(i) > 2.0 Å or missing atoms), not only from gaps in the numbering.
+- The orientation and position of the input do not matter: features are computed in a
+  canonical principal-axes frame.
 - pLDDT is **not** used. The feature exists in the architecture but was constant during
   training, so it carries no information.
 
@@ -66,6 +68,7 @@ One row per residue:
 |---|---|
 | `resi`, `resn`, `aa1` | residue number (as in the file), 3- and 1-letter name |
 | `exchangeable` | False for prolines and the first two residues (no measurable amide) |
+| `after_chain_break` | True if the residue follows a gap in the chain; its amide H-bond features are set to the training mean, so treat its value with extra caution |
 | `dg_open_kcal` | ensemble-mean ΔG_open, kcal/mol; NaN where not exchangeable |
 | `dg_open_member_sd` | SD across the 12 members. A spread diagnostic, **not** a calibrated error bar |
 | `<arm>_C2_s<seed>` | per-member predictions, with `--members` |
@@ -77,7 +80,8 @@ SASA (solvent-accessible surface area) with a 92-point Shrake-Rupley calculation
 the method that built the training features. `--sse-method psea` uses P-SEA SSE and biotite
 SASA instead; it reproduces the external-benchmark numbers in the accompanying manuscript,
 whose evaluation featurised structures that way. Over the 12-protein WT-external benchmark,
-the two settings give macro Spearman ρ 0.393 (torsion) and 0.402 (psea). See MODEL_CARD.md.
+the published evaluation (psea, v0.1 featurisation) gives macro Spearman ρ 0.402 and the
+v0.2.0 defaults give 0.400. See MODEL_CARD.md and CHANGELOG.md.
 
 ## Baseline
 
