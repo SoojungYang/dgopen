@@ -1,0 +1,30 @@
+name: tests
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+jobs:
+  unit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: "3.12"}
+      - run: pip install torch --index-url https://download.pytorch.org/whl/cpu
+      - run: pip install -e ".[test]"
+      - run: pytest -q                     # golden end-to-end test skips without weights
+  golden:
+    # end-to-end against the released weights, downloaded from Hugging Face (168 MB);
+    # run manually from the Actions tab
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: "3.12"}
+      - run: pip install torch --index-url https://download.pytorch.org/whl/cpu
+      - run: pip install -e ".[test]"
+      - uses: actions/cache@v4
+        with: {path: ~/.cache/dgopen, key: dgopen-weights-v0.1.0}
+      - run: python -c "from dgopen import weights; weights.resolve()"
+      - run: DGOPEN_WEIGHTS=~/.cache/dgopen/v0.1.0 pytest -q tests/test_ensemble.py

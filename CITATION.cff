@@ -1,0 +1,9 @@
+cff-version: 1.2.0
+message: "If you use dgopen, please cite this software release. A manuscript citation will be added when available."
+title: "dgopen: per-residue amide opening free energy from protein structure"
+version: 0.1.0
+license: MIT
+repository-code: "https://github.com/SoojungYang/dgopen"
+authors:
+  - family-names: "Yang"
+    given-names: "Soojung"

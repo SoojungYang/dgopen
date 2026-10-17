@@ -1,0 +1,14 @@
+name: dgopen
+channels: [conda-forge, pytorch]
+dependencies:
+  - python=3.12
+  - numpy
+  - pandas
+  - pip
+  - pip:
+      - torch
+      - transformers
+      - biotite
+      - pytest
+      - scipy
+      - -e .

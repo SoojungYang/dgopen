@@ -1,0 +1,30 @@
+[build-system]
+requires = ["setuptools>=64"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "dgopen"
+version = "0.1.0"
+description = "Per-residue amide opening free energy (dG_open) from protein structure, HDX-trained ensemble"
+readme = "README.md"
+license = {text = "MIT"}
+requires-python = ">=3.10"
+dependencies = [
+  "numpy>=1.24",
+  "pandas>=2.0",
+  "torch>=2.1",
+  "transformers>=4.36",
+]
+
+[project.optional-dependencies]
+psea = ["biotite>=1.0"]
+test = ["pytest>=7", "scipy>=1.10", "biotite>=1.0"]
+
+[project.scripts]
+dgopen = "dgopen.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+dgopen = ["data/*.json"]
