@@ -44,6 +44,15 @@ df = dgopen.predict_structure("examples/5PTI.pdb", chain="A")
 
 A CPU is enough. 5PTI (58 residues) takes about 30 s, almost all of it loading and running ESM-2.
 
+## Examples
+
+- `examples/5PTI.pdb`: the quickstart structure (BPTI, PDB 5PTI).
+- `examples/hdx_nmr/`: 13 domains with site-resolved HDX-NMR measurements, with dgopen and
+  Best-Vendruscolo predictions shown against the measured values. See its README; 10 of the
+  13 domains were in the fine-tuning set, so these are illustrations, not a benchmark.
+
+![HDX-NMR examples](examples/hdx_nmr/nmr_examples.png)
+
 ## Input
 
 - One chain of one structure in PDB format. Pass `--chain` if the file has several chains.
