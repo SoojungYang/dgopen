@@ -61,8 +61,9 @@ proteins (macro).
 
 - **WT-external** proteins are not in the training set. Per-fold ρ ranges from about 0.0 to
   0.7, so on any single protein the result can be poor.
-- **HDX-NMR:** 10 of the 13 domains are in the fine-tuning set. Their MS distributions, not
-  their NMR per-residue labels, were seen in training. Treat this row as partly in-sample.
+- **HDX-NMR:** no NMR value is used in training. For 3 of the 13 domains no measured data was
+  used at all (two of them are double mutants of training domains). For the other 10, only
+  their unassigned HDX-MS distributions were used in fine-tuning.
 - The v0.2.0 default differs from the published evaluation in four inference-time details:
   1. torsion-rule SSE and numpy SASA, which match training, replace P-SEA and biotite SASA;
   2. only the first alternate location of each atom is kept (the published evaluation counted

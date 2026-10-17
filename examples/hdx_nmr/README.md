@@ -17,11 +17,19 @@ measured values (navy for dgopen, red for Best-Vendruscolo).
 | macro ρ, all 13 domains | 0.631 | 0.387 |
 | macro ρ, 3 held-out domains | 0.729 | 0.418 |
 
-**Read this before using these numbers.** 10 of the 13 domains are in dgopen's fine-tuning
-set: the model saw their HDX-MS ΔG_open *distributions*, which do not say which value belongs
-to which residue, but never their NMR values. Only the 3 domains marked *held out* were not
-seen at all. Lower-bound residues are scored as if they were exact values, as in the
-published evaluation.
+**What the model saw.** None of these NMR values were used in training. The domains fall
+into two groups:
+
+- **Held out** (3 domains, bold in the figure): no measured data for these proteins was used
+  in training at all. Two of them are double mutants (K31L/E36V, R35D/G45L) of domains in the
+  other group, so the model has seen data for a protein differing at two positions. One of the
+  four pretraining variants also saw their structures, through the structure-only
+  Best-Vendruscolo target, which involves no measurement.
+- **Others** (10 domains): only their unassigned HDX-MS ΔG_open distributions were used in
+  fine-tuning, that is, how many amides have each ΔG_open without saying which residue is
+  which. Their per-residue values were never used.
+
+Lower-bound residues are scored as if they were exact values, as in the published evaluation.
 
 ## Files
 

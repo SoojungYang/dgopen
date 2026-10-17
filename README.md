@@ -48,10 +48,44 @@ A CPU is enough. 5PTI (58 residues) takes about 30 s, almost all of it loading a
 
 - `examples/5PTI.pdb`: the quickstart structure (BPTI, PDB 5PTI).
 - `examples/hdx_nmr/`: 13 domains with site-resolved HDX-NMR measurements, with dgopen and
-  Best-Vendruscolo predictions shown against the measured values. See its README; 10 of the
-  13 domains were in the fine-tuning set, so these are illustrations, not a benchmark.
+  Best-Vendruscolo predictions shown against the measured values. For the 3 *held-out*
+  domains, no measured data of any kind was used in training. For the other 10, only their
+  unassigned HDX-MS distributions were (no residue-level values). See its README.
 
 ![HDX-NMR examples](examples/hdx_nmr/nmr_examples.png)
+
+## How the model was trained
+
+Residue-resolved ΔG_open measurements are scarce, so training combines residue-resolved
+*synthetic* targets with large-scale *measured* data that do not say which value belongs to
+which residue.
+
+1. **Pretraining** (three of the four variants) regresses a per-residue synthetic ΔG_open
+   target with a weighted mean-squared-error loss:
+   - *BEST*: the Best-Vendruscolo structural estimate on the 3,590 HDX-MS domain structures.
+     The features it is computed from (amide contact and H-bond counts) are hidden from the
+     model during this stage, so it cannot simply copy them.
+   - *MD-mean*: Best-Vendruscolo-style protection averaged over folded-state molecular
+     dynamics frames from MegaSim (21,729 simulated domains: 271 wild types and 21,458 point
+     mutants), rescaled to the HDX-MS ΔG_open scale.
+   - *MD-mean-var*: the same target plus its per-residue variance across frames, as a second
+     output (multitask).
+   - The fourth variant starts from random weights.
+2. **Fine-tuning** (all variants) uses the mHDX-MS measurements of Ferrari et al. (2026):
+   per-domain distributions of ΔG_open for small domains of 28–64 residues (3,034 domains
+   for training, 159 for early stopping). Mass spectrometry measures how many amides have
+   each ΔG_open but not which residue each value belongs to. The loss therefore compares
+   the *sorted* predictions with the *sorted* measurements (a permutation-invariant mean
+   absolute difference). Measurements at the fast-exchange floor (0 kcal/mol, a measurement
+   artefact) only penalise predictions above 1.5 kcal/mol. No residue-level label is used.
+   Adam, learning rate 3·10⁻⁴ with warm-up and cosine decay, up to 60 epochs; the checkpoint
+   with the lowest validation loss is kept.
+3. **Ensemble**: each of the 4 variants is fine-tuned with 3 random seeds, and the released
+   prediction is the mean of the 12 models.
+
+Inputs at every stage are the 39 per-residue features and ESM-2 650M embeddings listed in
+MODEL_CARD.md; CA–CA distances enter as an attention bias. The HDX-NMR values used to
+evaluate the model are never used in any training loss.
 
 ## Input
 
