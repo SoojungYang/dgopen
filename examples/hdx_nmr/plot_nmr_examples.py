@@ -17,6 +17,7 @@ plt.rcParams.update({'font.family': 'sans-serif', 'font.sans-serif': ['Lato', 'D
                      'xtick.major.width': 0.8, 'ytick.major.width': 0.8, 'xtick.major.size': 2.5,
                      'ytick.major.size': 2.5, 'legend.frameon': False})
 NAVY, SKY, RED, BLACK = '#00386b', '#54cffb', '#f54b1a', '#110d1b'
+GREEN = '#0f6852'                         # measured HDX-NMR
 order = list(r.sort_values(['held_out', 'rho_dgopen'], ascending=[False, False]).index)
 fig, axes = plt.subplots(4, 4, figsize=(6.5, 6.2), sharey=True)
 for ax, dom in zip(axes.flat, order):
@@ -27,8 +28,8 @@ for ax, dom in zip(axes.flat, order):
     ax.plot(t.resi, t.best_kcal, color=RED, lw=1.0, ls='--')
     isb = m.lower_bound.astype(bool).to_numpy()
     pt, lb = m[~isb], m[isb]
-    ax.scatter(pt.resi, pt.dg_open_measured_kcal, s=7, color=BLACK, zorder=3, lw=0)
-    ax.scatter(lb.resi, lb.dg_open_measured_kcal, s=11, marker='^', facecolor='white', edgecolor=BLACK, lw=0.7, zorder=3)
+    ax.scatter(pt.resi, pt.dg_open_measured_kcal, s=11, color=GREEN, edgecolor='white', lw=0.3, zorder=3)
+    ax.scatter(lb.resi, lb.dg_open_measured_kcal, s=13, marker='^', facecolor='white', edgecolor=GREEN, lw=0.8, zorder=3)
     title = dom.replace('.1_', ' ').replace('_', ' ')
     for a, b in (('K31L E36V', 'K31L/E36V'), ('R35D G45L', 'R35D/G45L')):
         title = title.replace(a, b)
@@ -45,8 +46,8 @@ for ax in axes.flat[len(order):]:
 handles = [Line2D([], [], color=NAVY, lw=1.4, label='dgopen (12-member mean)'),
            Patch(color=SKY, alpha=0.35, label='member spread ($\\pm$1 SD)'),
            Line2D([], [], color=RED, lw=1.0, ls='--', label='Best-Vendruscolo'),
-           Line2D([], [], color=BLACK, marker='o', ls='', ms=3, label='HDX-NMR measured'),
-           Line2D([], [], color=BLACK, marker='^', ls='', ms=4, mfc='white', mew=0.7, label='measured, lower bound')]
+           Line2D([], [], color=GREEN, marker='o', ls='', ms=3.5, label='HDX-NMR measured'),
+           Line2D([], [], color=GREEN, marker='^', ls='', ms=4, mfc='white', mew=0.8, label='measured, lower bound')]
 axes.flat[len(order)].legend(handles=handles, loc='upper left', fontsize=7.8, bbox_to_anchor=(-0.05, 1.0), handlelength=1.6)
 fig.supxlabel('residue number', fontsize=10, y=0.012)
 fig.supylabel('$\\Delta G_\\mathrm{open}$ (kcal/mol)', fontsize=10, x=0.02)

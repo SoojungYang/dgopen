@@ -66,8 +66,11 @@ which residue.
 with the target at the same residue. (b) HDX-MS measures only the set of opening energies of
 a domain, with no residue labels. (c) Fine-tuning therefore sorts the predictions and
 compares them with the sorted measurements rank by rank. (d) The trained model outputs one
-ΔG_open per residue, shown here against HDX-NMR values, which are never used in training.
-Data are for one fine-tuning domain, EEHEE_rd4_0871; the script is `docs/make_training_schematic.py`.*
+ΔG_open per residue, shown here for a held-out domain (HHH_rd4_0518 R35D/G45L, a double mutant
+of a training domain; no measured data for it were used) against HDX-NMR values, which are never
+used in training. Open triangles are residues that exchanged too slowly, so the measured value is a
+lower bound. Panels a–c use one fine-tuning domain, EEHEE_rd4_0871; the script is
+`docs/make_training_schematic.py`.*
 
 1. **Pretraining** (three of the four variants) regresses a per-residue synthetic ΔG_open
    target with a weighted mean-squared-error loss:

@@ -1,12 +1,13 @@
 """Training schematic for the README: what each training stage supervises.
 
-Uses one real domain (EEHEE_rd4_0871, data in schematic_data.json):
+Uses real data (schematic_data.json): panels a-c one fine-tuning domain (EEHEE_rd4_0871),
+panel d one held-out HDX-NMR domain (HHH_rd4_0518_R35D_G45L, `panel_d`):
   (a) pretraining: a synthetic target is known for every residue, so the loss pairs residue i
       with residue i (shown with the Best-Vendruscolo target);
   (b) fine-tuning: HDX-MS gives only a multiset of opening energies with no residue labels;
       predictions are sorted and matched to the sorted measurements rank by rank;
-  (c) output: one assigned ΔG_open per residue, here compared with HDX-NMR, which is never used
-      in training.
+  (d) output: one assigned ΔG_open per residue on a domain whose measured data were not used in
+      fine-tuning, compared with HDX-NMR (never used in training; too-slow residues are lower bounds).
 Writes training_schematic.pdf / .png next to this file."""
 import json, os
 import numpy as np
@@ -24,6 +25,7 @@ ms = np.array(D['ms_multiset'])
 
 NAVY, BLUE, SKY, ORANGE, RED, BLACK, GREY, LGREY = ('#00386b', '#1b9ad0', '#54cffb', '#fbac41',
                                                    '#f54b1a', '#110d1b', '#9dadc4', '#e6ebee')
+GREEN = '#0f6852'                                         # measured HDX-NMR (as in examples/hdx_nmr)
 plt.rcParams.update({'font.family': 'sans-serif', 'font.sans-serif': ['Lato', 'DejaVu Sans'],
                      'font.size': 8, 'axes.linewidth': 1.0, 'axes.labelsize': 8.5,
                      'xtick.labelsize': 7.5, 'ytick.labelsize': 7.5, 'axes.spines.top': False,
@@ -101,14 +103,21 @@ letter(axc, 'c', dx=-0.2)
 
 # ---------------------------------------------------------------- (d) output vs HDX-NMR
 axd = fig.add_subplot(gs[2, :])
-axd.plot(resi, np.where(ex, pred, np.nan), color=NAVY, lw=1.6, marker='o', ms=2.8, label='dgopen: assigned $\\Delta G_\\mathrm{open}$ per residue', zorder=3)
-ok = ~np.isnan(nmr)
-axd.scatter(resi[ok], nmr[ok], s=16, facecolor='white', edgecolor=BLACK, lw=0.9, zorder=4,
-            label='HDX-NMR measured (per residue; never used in training)')
+P = D['panel_d']; g = lambda k: np.array([np.nan if v is None else v for v in P[k]], float)
+dres, dex, dpred, dnmr = np.array(P['resi']), np.array(P['exchangeable']), g('dgopen'), g('nmr')
+dlb = np.array(P['nmr_lower_bound'])
+axd.plot(dres, np.where(dex, dpred, np.nan), color=NAVY, lw=1.6, marker='o', ms=2.8, label='dgopen: assigned $\\Delta G_\\mathrm{open}$ per residue', zorder=3)
+ok = ~np.isnan(dnmr) & ~dlb
+axd.scatter(dres[ok], dnmr[ok], s=20, color=GREEN, edgecolor='white', lw=0.5, zorder=4,
+            label='HDX-NMR measured (never used in training)')
+okb = ~np.isnan(dnmr) & dlb
+axd.scatter(dres[okb], dnmr[okb], s=24, marker='^', facecolor='white', edgecolor=GREEN, lw=1.1, zorder=4,
+            label='HDX-NMR lower bound')
 axd.set_xlabel('residue number'); axd.set_ylabel('$\\Delta G_\\mathrm{open}$ (kcal/mol)')
-axd.set_xlim(0, resi.max() + 1); axd.set_ylim(0, 7.5)
-axd.legend(fontsize=7.2, loc='upper left', ncol=2, handlelength=1.4, borderaxespad=0.1)
-axd.set_title('output: the residue assignment that HDX-MS lacks  (EEHEE_rd4_0871, after training)', fontsize=8.3, loc='left', pad=4)
+axd.set_xlim(0, dres.max() + 1); axd.set_ylim(0, 9.2); axd.set_yticks([0, 2, 4, 6, 8])
+axd.legend(fontsize=7.2, loc='upper left', ncol=3, handlelength=1.4, borderaxespad=0.1, columnspacing=1.2)
+axd.set_title('output: the residue assignment that HDX-MS lacks  (held-out domain HHH_rd4_0518 R35D/G45L)',
+              fontsize=8.3, loc='left', pad=4)
 letter(axd, 'd', dx=-0.075, dy=1.04)
 
 fig.savefig(os.path.join(here, 'training_schematic.pdf'))

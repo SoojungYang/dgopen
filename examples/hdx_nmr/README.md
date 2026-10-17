@@ -6,7 +6,7 @@ the Best-Vendruscolo baseline.
 
 ![HDX-NMR examples](nmr_examples.png)
 
-Each panel shows one domain. Black points are measured values. Open triangles are residues
+Each panel shows one domain. Green points are measured values. Open triangles are residues
 that exchanged too slowly to measure fully, so their value is a lower bound. The navy line is
 the dgopen ensemble mean, with the ±1 SD spread across its 12 members shaded. The dashed red
 line is Best-Vendruscolo. The ρ values in each panel are Spearman correlations with the
