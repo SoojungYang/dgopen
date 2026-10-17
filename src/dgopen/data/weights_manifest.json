@@ -77,7 +77,7 @@
   "ffn": 512
  },
  "combine": "arithmetic mean over members, equal weights",
- "base_url": "https://huggingface.co/SoojungYang/dgopen/resolve/v0.1.0",
+ "base_url": "https://huggingface.co/Soojung/dgopen/resolve/v0.1.0",
  "members": [
   {
    "name": "A1_none_C2_s0",

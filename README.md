@@ -20,7 +20,7 @@ pip install -e ".[psea]"    # optional: biotite, only for --sse-method psea
 ```
 
 The weights (12 files, 168 MB) are hosted on Hugging Face at
-[`SoojungYang/dgopen`](https://huggingface.co/SoojungYang/dgopen) and are downloaded
+[`Soojung/dgopen`](https://huggingface.co/Soojung/dgopen) and are downloaded
 automatically on first use into `~/.cache/dgopen/v0.1.0/`. For an offline machine, copy the
 files there yourself or point `--weights-dir` / `$DGOPEN_WEIGHTS` at them. Every file is checked against the sha256 in
 `src/dgopen/data/weights_manifest.json` before it is loaded. ESM-2 650M
