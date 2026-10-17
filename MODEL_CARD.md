@@ -38,13 +38,14 @@ proteins comparable in size to the training set (28–64 residues).
   invariant: a sorted L1 distance between the sorted predictions and the sorted measured
   values. Measurements at the fast-exchange floor get a one-sided hinge (margin
   1.5 kcal/mol) instead. Checkpoints were selected on validation-set L1.
-  Source: the mHDX-MS dataset of Ferrari et al., *Nature* 654, 1108–1118 (2026), measured on
+  Source: the mHDX-MS dataset of Ferrari et al., *Nature* 654, 1108–1118 (2026),
+  doi:10.1038/s41586-026-10465-z, data: Zenodo doi:10.5281/zenodo.14983481 (CC BY 4.0), measured on
   domains from the mega-scale stability study of Tsuboyama et al., *Nature* 620, 434–444
   (2023; data and structures on Zenodo 10.5281/zenodo.7992926, CC BY 4.0).
 - **Pretraining** (arms A2–A4): per-residue Best-Vendruscolo and MD-derived protection
   targets. The MD targets come from MegaSim: 271 wild-type domains and 21,458 point mutants
-  simulated by Microsoft Research for BioEmu (Lewis et al., bioRxiv
-  10.1101/2024.12.05.626885; data on Zenodo 10.5281/zenodo.15641184, CDLA-Permissive-2.0).
+  simulated by Microsoft Research for BioEmu (Lewis et al., Science 389, eadv9817 (2025),
+  doi:10.1126/science.adv9817; data: Zenodo doi:10.5281/zenodo.15641184, CDLA-Permissive-2.0).
 - **Structures:** model structures of the training domains. None has alternate locations or
   multiple models. Secondary structure and SASA come from the torsion-rule / Shrake-Rupley
   method that `--sse-method torsion` reproduces.

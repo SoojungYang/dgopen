@@ -60,18 +60,27 @@ Residue-resolved ΔG_open measurements are scarce, so training combines residue-
 *synthetic* targets with large-scale *measured* data that do not say which value belongs to
 which residue.
 
+![Training schematic](docs/training_schematic.png)
+
+*(a) Pretraining has a synthetic target for every residue, so each prediction is compared
+with the target at the same residue. (b) HDX-MS measures only the set of opening energies of
+a domain, with no residue labels. (c) Fine-tuning therefore sorts the predictions and
+compares them with the sorted measurements rank by rank. (d) The trained model outputs one
+ΔG_open per residue, shown here against HDX-NMR values, which are never used in training.
+Data are for one fine-tuning domain, EEHEE_rd4_0871; the script is `docs/make_training_schematic.py`.*
+
 1. **Pretraining** (three of the four variants) regresses a per-residue synthetic ΔG_open
    target with a weighted mean-squared-error loss:
-   - *BEST*: the Best-Vendruscolo structural estimate on the 3,590 HDX-MS domain structures.
+   - *BEST*: the Best-Vendruscolo structural estimate [3] on the 3,590 HDX-MS domain structures.
      The features it is computed from (amide contact and H-bond counts) are hidden from the
      model during this stage, so it cannot simply copy them.
    - *MD-mean*: Best-Vendruscolo-style protection averaged over folded-state molecular
-     dynamics frames from MegaSim (21,729 simulated domains: 271 wild types and 21,458 point
-     mutants), rescaled to the HDX-MS ΔG_open scale.
+     dynamics frames from MegaSim [2] (21,729 simulated domains: 271 wild types and 21,458
+     point mutants), rescaled to the HDX-MS ΔG_open scale.
    - *MD-mean-var*: the same target plus its per-residue variance across frames, as a second
      output (multitask).
    - The fourth variant starts from random weights.
-2. **Fine-tuning** (all variants) uses the mHDX-MS measurements of Ferrari et al. (2026):
+2. **Fine-tuning** (all variants) uses the mHDX-MS measurements of Ferrari et al. (2026) [1]:
    per-domain distributions of ΔG_open for small domains of 28–64 residues (3,034 domains
    for training, 159 for early stopping). Mass spectrometry measures how many amides have
    each ΔG_open but not which residue each value belongs to. The loss therefore compares
@@ -132,10 +141,29 @@ v0.2.0 defaults give 0.400. See MODEL_CARD.md and CHANGELOG.md.
 (Best & Vendruscolo, *Structure* 2006): ln PF = 0.35 N_contacts + 2.0 N_H-bonds. It needs no
 weights. Compare against it on any new protein before trusting the model there.
 
+## Data sources and references
+
+1. **mHDX-MS fine-tuning data, HDX-NMR example data, domain structures.** Ferrari, Á. J. R.
+   *et al.* Large-scale discovery, analysis and design of protein energy landscapes.
+   *Nature* **654**, 1108–1118 (2026). [doi:10.1038/s41586-026-10465-z](https://doi.org/10.1038/s41586-026-10465-z).
+   Data: Zenodo [doi:10.5281/zenodo.14983481](https://doi.org/10.5281/zenodo.14983481) (CC BY 4.0).
+2. **MegaSim molecular dynamics (pretraining targets).** Lewis, S. *et al.* Scalable emulation
+   of protein equilibrium ensembles with generative deep learning. *Science* **389**, eadv9817
+   (2025). [doi:10.1126/science.adv9817](https://doi.org/10.1126/science.adv9817).
+   Data: Zenodo [doi:10.5281/zenodo.15641184](https://doi.org/10.5281/zenodo.15641184) (CDLA-Permissive-2.0).
+3. **Best-Vendruscolo model.** Best, R. B. & Vendruscolo, M. Structural interpretation of
+   hydrogen exchange protection factors in proteins: characterization of the native state
+   fluctuations of CI2. *Structure* **14**, 97–106 (2006). [doi:10.1016/j.str.2005.09.012](https://doi.org/10.1016/j.str.2005.09.012).
+4. **ESM-2.** Lin, Z. *et al.* Evolutionary-scale prediction of atomic-level protein structure
+   with a language model. *Science* **379**, 1123–1130 (2023). [doi:10.1126/science.ade2574](https://doi.org/10.1126/science.ade2574).
+5. **Domain library** (the designed and natural domains measured in [1]). Tsuboyama, K. *et al.*
+   Mega-scale experimental analysis of protein folding stability in biology and design.
+   *Nature* **620**, 434–444 (2023). [doi:10.1038/s41586-023-06328-6](https://doi.org/10.1038/s41586-023-06328-6).
+
 ## Citation
 
 If you use dgopen, please cite this release (CITATION.cff). A manuscript citation will be
-added when available. Please also cite the training-data sources listed in MODEL_CARD.md.
+added when available. Please also cite the data sources above ([1], [2]).
 
 ## License
 

@@ -7,3 +7,5 @@
 | biotite (optional, `--sse-method psea`) | runtime dependency | BSD-3 |
 | `examples/5PTI.pdb` (RCSB PDB entry 5PTI) | example input, redistributed unmodified | CC0 1.0 (wwPDB) |
 | `examples/hdx_nmr/` measured ΔG_open and structures (Ferrari et al. 2026; Zenodo 10.5281/zenodo.14983481) | example data; structures unmodified, measured values averaged over replicates (see its README) | CC BY 4.0 |
+| mHDX-MS training data (Ferrari et al. 2026; Zenodo 10.5281/zenodo.14983481) | used to train the weights; not redistributed except the example data above | CC BY 4.0 |
+| MegaSim MD (Lewis et al. 2025; Zenodo 10.5281/zenodo.15641184) | used to derive pretraining targets; not redistributed | CDLA-Permissive-2.0 |

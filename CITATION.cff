@@ -7,3 +7,40 @@ repository-code: "https://github.com/SoojungYang/dgopen"
 authors:
   - family-names: "Yang"
     given-names: "Soojung"
+references:
+  - type: article
+    title: "Large-scale discovery, analysis and design of protein energy landscapes"
+    authors:
+      - family-names: "Ferrari"
+        given-names: "Állan J. R."
+    journal: "Nature"
+    volume: 654
+    start: 1108
+    end: 1118
+    year: 2026
+    doi: "10.1038/s41586-026-10465-z"
+  - type: dataset
+    title: "Large-scale discovery, analysis, and design of protein energy landscapes (datasets)"
+    authors:
+      - family-names: "Ferrari"
+        given-names: "Állan J. R."
+    doi: "10.5281/zenodo.14983481"
+    license: CC-BY-4.0
+  - type: article
+    title: "Scalable emulation of protein equilibrium ensembles with generative deep learning"
+    authors:
+      - family-names: "Lewis"
+        given-names: "Sarah"
+    journal: "Science"
+    volume: 389
+    year: 2025
+    doi: "10.1126/science.adv9817"
+  - type: dataset
+    title: "Molecular dynamics dataset for \"scalable emulation of protein equilibrium ensembles with generative deep learning\": MegaSim"
+    authors:
+      - family-names: "Lewis"
+        given-names: "Sarah"
+      - family-names: "Hempel"
+        given-names: "Tim"
+    doi: "10.5281/zenodo.15641184"
+    license: CDLA-Permissive-2.0
